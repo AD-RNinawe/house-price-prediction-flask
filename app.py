@@ -1,3 +1,9 @@
+"""
+Flask application exposing the trained house price prediction model.
+
+Loads serialized model artifacts and serves predictions through a web interface.
+"""
+
 from flask import Flask, jsonify, request, render_template
 import utils
 
@@ -33,4 +39,5 @@ if __name__ == "__main__":
     print("Starting Python Flask Server for Bengaluru House Price Prediction...")
     utils.load_saved_artifacts()
     app.run()
+
 
