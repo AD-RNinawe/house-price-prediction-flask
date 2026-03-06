@@ -40,3 +40,7 @@ http://127.0.0.1:5000
 - NumPy
 Install dependencies
 
+## Demo
+
+![App Screenshot](demo/app-interface.png) 
+
