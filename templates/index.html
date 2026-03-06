@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>House Price Predictor (Local)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; max-width:600px; margin:40px auto; padding:0 12px; }
+    label { display:block; margin-top:12px; }
+    input, select { width:100%; padding:8px; margin-top:6px; box-sizing:border-box; }
+    button { margin-top:14px; padding:8px 12px; }
+    #result { margin-top:18px; font-weight:600; }
+  </style>
+</head>
+<body>
+  <h2>House Price Predictor — Bengaluru (Local)</h2>
+
+  <label for="location">Location</label>
+  <select id="location"></select>
+
+  <label for="sqft">Total sqft</label>
+  <input id="sqft" type="number" step="any" placeholder="1100" />
+
+  <label for="bhk">BHK</label>
+  <input id="bhk" type="number" step="1" placeholder="2" />
+
+  <label for="bath">Bathrooms</label>
+  <input id="bath" type="number" step="1" placeholder="2" />
+
+  <button id="predictBtn">Predict</button>
+
+  <div id="result" aria-live="polite"></div>
+
+  <script>
+    async function populateLocations() {
+      try {
+        const r = await fetch('/get_location_names'); // your existing endpoint
+        if (!r.ok) throw new Error('Failed to fetch locations');
+        const data = await r.json();
+        const sel = document.getElementById('location');
+        // assume data has form { locations: [ ... ] } or an array; adapt below:
+        const locs = Array.isArray(data) ? data : (data.locations || []);
+        sel.innerHTML = locs.map(l => `<option value="${l}">${l}</option>`).join('');
+      } catch (e) {
+        console.error(e);
+        const sel = document.getElementById('location');
+        sel.innerHTML = '<option value="">(failed to load locations)</option>';
+      }
+    }
+
+    async function predict() {
+      const resultEl = document.getElementById('result');
+      resultEl.textContent = 'Predicting...';
+
+      const payload = {
+        total_sqft: document.getElementById('sqft').value,
+        location: document.getElementById('location').value,
+        bhk: document.getElementById('bhk').value,
+        bath: document.getElementById('bath').value
+      };
+
+      // Using FormData so your current server (request.form) works:
+      const form = new FormData();
+      form.append('total_sqft', payload.total_sqft);
+      form.append('location', payload.location);
+      form.append('bhk', payload.bhk);
+      form.append('bath', payload.bath);
+
+      try {
+        const r = await fetch('/predict_price', {
+          method: 'POST',
+          body: form
+          // note: no need to set Content-Type manually for FormData
+        });
+
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({ error: 'server error' }));
+          resultEl.textContent = 'Error: ' + (err.error || JSON.stringify(err));
+          return;
+        }
+
+        const data = await r.json();
+        // adapt to the key your server returns; example used 'estimated_price'
+        const price = data.estimated_price ?? data.predicted_price ?? data.price;
+        resultEl.textContent = 'Estimated price (lakhs): ' + price;
+      } catch (e) {
+        resultEl.textContent = 'Network error: ' + e.message;
+      }
+    }
+
+    document.getElementById('predictBtn').addEventListener('click', predict);
+
+    // on load, populate locations
+    populateLocations();
+  </script>
+</body>
+</html>
